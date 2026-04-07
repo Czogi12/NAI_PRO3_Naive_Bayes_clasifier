@@ -29,3 +29,4 @@ bin/
 .DS_Store
 
 .idea/
+/NAI_PRO3_Naive_Bayes_clasifier.iml
