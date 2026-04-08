@@ -19,20 +19,26 @@ public class EvaluationMetrics<T> {
 	public static <T> double measurePrecision(T[] realClasses, T[] predictedClasses, T positiveClass) {
 		var confusionMatrix = createConfusionMatrix(realClasses, predictedClasses, positiveClass);
 		// TP / FP + TP
-		return (double) confusionMatrix[0][0] / ((double) confusionMatrix[0][1] + (double) confusionMatrix[0][0]);
+		var fptp = (confusionMatrix[0][1] + confusionMatrix[0][0]);
+		if (fptp == 0) return 0;
+		return (double) confusionMatrix[0][0] / fptp;
 	}
 
 	public static <T> double measureRecall(T[] realClasses, T[] predictedClasses, T positiveClass) {
 		var confusionMatrix = createConfusionMatrix(realClasses, predictedClasses, positiveClass);
 		// TP / FN + TP
-		return (double) confusionMatrix[0][0] / ((double) confusionMatrix[1][0] + (double) confusionMatrix[0][0]);
+		var fntp = (confusionMatrix[1][0] + confusionMatrix[0][0]);
+		if (fntp == 0) return 0;
+		return (double) confusionMatrix[0][0] / fntp;
 	}
 
 	public static <T> double measureFScore(T[] realClasses, T[] predictedClasses, T positiveClass) {
 		// 2 * P * R / P + R
 		var p = measurePrecision(realClasses, predictedClasses, positiveClass);
 		var r = measureRecall(realClasses, predictedClasses, positiveClass);
-		return 2 * p * r / (p + r);
+		var pr = (p + r);
+		if (pr == 0) return 0;
+		return 2 * p * r / pr;
 	}
 
 	public static <T> double measureAccuracy(T[] realClasses, T[] predictedClasses) {
