@@ -54,10 +54,13 @@ public class Main {
 					classifier.predict(new String[]{"rainy", "mild", "high", "true"})
 			};
 
-			System.out.printf("Accuracy: %.4f\n", EvaluationMetrics.measureAccuracy(expectedClasses, predictedClasses));
-			System.out.printf("Precision: %.4f\n", EvaluationMetrics.measurePrecision(expectedClasses, predictedClasses, "yes"));
-			System.out.printf("Recall:    %.4f\n", EvaluationMetrics.measureRecall(expectedClasses, predictedClasses, "yes"));
-			System.out.printf("F-Score:   %.4f\n", EvaluationMetrics.measureFScore(expectedClasses, predictedClasses, "yes"));
+			for (String y : dataSet.getYSet()) {
+				System.out.printf("Evaluation for %s\n", y);
+				System.out.printf("\tAccuracy: %.4f\n", EvaluationMetrics.measureAccuracy(expectedClasses, predictedClasses));
+				System.out.printf("\tPrecision: %.4f\n", EvaluationMetrics.measurePrecision(expectedClasses, predictedClasses, y));
+				System.out.printf("\tRecall:    %.4f\n", EvaluationMetrics.measureRecall(expectedClasses, predictedClasses, y));
+				System.out.printf("\tF-Score:   %.4f\n", EvaluationMetrics.measureFScore(expectedClasses, predictedClasses, y));
+			}
 		}
 
 	}
