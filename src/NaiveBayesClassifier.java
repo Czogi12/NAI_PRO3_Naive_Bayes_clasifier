@@ -1,28 +1,33 @@
 import data.DataSet;
-import interfaces.ISmoothing;
-
-import java.util.Map;
 
 public class NaiveBayesClassifier {
-    private final DataSet dataSet;
+	private final DataSet trainDataSet;
 
-    private boolean applySmoothingAll;
-    private final ISmoothing smoothing;
+	private boolean applySmoothingAll;
 
-    public NaiveBayesClassifier(
-            DataSet dataSet,
-            boolean applySmoothingAll,
-            ISmoothing smoothing) {
-        this.dataSet = dataSet;
-        this.applySmoothingAll = applySmoothingAll;
-        this.smoothing = smoothing;
-    }
+	public NaiveBayesClassifier(DataSet trainDataSet, boolean applySmoothingAll) {
+		this.trainDataSet = trainDataSet;
+		this.applySmoothingAll = applySmoothingAll;
+	}
 
-    public void setApplySmoothingAll(boolean applySmoothingAll) {
-        this.applySmoothingAll = applySmoothingAll;
-    }
+	public void setApplySmoothingAll(boolean applySmoothingAll) {
+		this.applySmoothingAll = applySmoothingAll;
+	}
 
-    public void trainDataSet() {
+	public String predict(String[] input) {
+		String bestPrediction = null;
+		double bestPredictionScore = Double.NEGATIVE_INFINITY;
 
-    }
+		for (String y : trainDataSet.getYSet()) {
+			double score = trainDataSet.getPriori(y, applySmoothingAll);
+			for (int i = 0; i < input.length; i++) {
+				score *= trainDataSet.getPosteriori(y, i, input[i], applySmoothingAll);
+			}
+			if (score > bestPredictionScore) {
+				bestPrediction = y;
+				bestPredictionScore = score;
+			}
+		}
+		return bestPrediction;
+	}
 }
