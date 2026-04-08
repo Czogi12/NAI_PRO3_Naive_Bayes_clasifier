@@ -1,71 +1,93 @@
 package data;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import interfaces.ISmoothing;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class DataSet {
-	// Y
-	private Map<String, Double> priori;
-	// Xn|Y
-	private Map<String, Map<Integer, Map<String, Double>>> posteriori;
+	private final Set<Data> dataSet;
+	private final ISmoothing smoothing;
+	int dataDimension;
+	// 	Xn/Y counts
+	List<Map<String, Integer>> counts;
+	// Xn|Y counts
+	Map<String, List<Map<String, Integer>>> jointCounts;
 
-	private HashSet<Data> data;
+	public DataSet(Set<Data> dataSet, ISmoothing smoothing) {
+		this.dataSet = dataSet;
+		this.dataDimension = dataSet.iterator().next().getDimension();
+		this.smoothing = smoothing;
 
-	public DataSet() {
-		this.priori = new HashMap<>();
-		this.posteriori = new HashMap<>();
-		this.data = new HashSet<>();
+		for (var data : dataSet) {
+			if (data.getDimension() != this.dataDimension) {
+				throw new IllegalArgumentException("data dimensions do not match");
+			}
+		}
+
+		recalculate();
 	}
 
 	public void addData(Data data) {
-		this.data.add(data);
-		calculatePriori();
-		calculatePosteriori();
+		this.dataSet.add(data);
+		recalculate();
 	}
 
-	private void calculatePosteriori() {
-		this.posteriori.clear();
+	private void recalculate() {
+		calculateCounts();
+		calculateJointCounts();
+	}
 
-		for (Data d : data) {
-			if (!this.posteriori.containsKey(d.getY())) {
-				this.posteriori.put(d.getY(), new HashMap<>());
-				for (int i = 0; i < d.getDimension() - 1; i++) {
-					this.posteriori.get(d.getY())
-							.computeIfAbsent(i, k -> new HashMap<>());
-				}
-			}
+	public String[] getYSet() {
+		return dataSet.stream().map(Data::getY).collect(Collectors.toSet()).toArray(String[]::new);
+	}
+
+	public double getPriori(String y, boolean forceSmoothing) {
+		var numerator = counts.get(dataDimension - 1).getOrDefault(y, 0);
+		var denominator = dataSet.size();
+
+		return numerator == 0 || forceSmoothing ? smoothing.simpleSmoothing(numerator, denominator, denominator) : (double) numerator / denominator;
+	}
+
+	public double getPosteriori(String y, int i, String attr, boolean forceSmoothing) {
+		var numerator = jointCounts.get(y).get(i).getOrDefault(attr, 0);
+		var denominator = counts.get(dataDimension - 1).getOrDefault(y, 0);
+
+		return numerator == 0 || forceSmoothing ? smoothing.simpleSmoothing(numerator, denominator, counts.get(i).size()) : (double) numerator / denominator;
+	}
+
+	private void calculateCounts() {
+		this.counts = new ArrayList<>();
+		for (int i = 0; i < dataDimension; i++) {
+			this.counts.add(new HashMap<>());
 		}
-
-		for (Data d : data) {
-			for (int i = 0; i < d.getDimension() - 1; i++) {
-				Map<String, Double> featureMap = this.posteriori.get(d.getY()).get(i);
-				featureMap.put(d.getAttribute(i), featureMap.getOrDefault(d.getAttribute(i), 0d) + 1);
-			}
-		}
-
-		for (String y : this.posteriori.keySet()) {
-			double classCount = this.priori.get(y) * data.size();
-			for (int i : this.posteriori.get(y).keySet()) {
-				for (String value : this.posteriori.get(y).get(i).keySet()) {
-					this.posteriori.get(y).get(i).put(value,
-							this.posteriori.get(y).get(i).get(value) / classCount);
-				}
+		for (Data d : dataSet) {
+			for (int i = 0; i < dataDimension; i++) {
+				var attrMap = this.counts.get(i);
+				attrMap.put(d.getAttribute(i), 1 + attrMap.getOrDefault(d.getAttribute(i), 0));
 			}
 		}
 	}
 
-	private void calculatePriori() {
-		this.priori.clear();
-
-		Map<String, Integer> yCount = new HashMap<>();
-
-		for (Data data : this.data) {
-			yCount.put(data.getY(), yCount.getOrDefault(data.getY(), 0) + 1);
+	private void calculateJointCounts() {
+		this.jointCounts = new HashMap<>();
+		for (String y : getYSet()) {
+			var array = new ArrayList<Map<String, Integer>>();
+			for (int i = 0; i < dataDimension - 1; i++) {
+				array.add(new HashMap<>());
+			}
+			this.jointCounts.put(y, array);
 		}
 
-		for (String y : yCount.keySet()) {
-			this.priori.put(y, (double) yCount.get(y) / this.data.size());
+		for (String y : getYSet()) {
+			for (int i = 0; i < dataDimension - 1; i++) {
+				var attrMap = this.jointCounts.get(y).get(i);
+
+				for (Data d : dataSet) {
+					if (!d.getY().equals(y)) continue;
+					attrMap.put(d.getAttribute(i), 1 + attrMap.getOrDefault(d.getAttribute(i), 0));
+				}
+			}
 		}
 	}
 }
